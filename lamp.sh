@@ -25,7 +25,7 @@ systemctl disable firewalld
 yum install wget epel-release curl yum-utils zip unzip openssl git -y
 rpm -Uvh https://rpms.remirepo.net/enterprise/remi-release-7.rpm
 ########################################## Install yum-axelget and configs
-yum install yum-axelget -y
+yum install unar p7zip yum-axelget -y
 sed -i 's/maxconn=5/maxconn=10/g' /etc/yum/pluginconf.d/axelget.conf
 ########################################## Yum Deep Update!
 yum clean all
@@ -36,17 +36,15 @@ echo $'\nClientAliveInterval 30\nTCPKeepAlive yes\nClientAliveCountMax 99999' >>
 sed -i 's/#Port 22/Port '$ssh_port_number'/g' /etc/ssh/sshd_config
 curl -o /root/.bashrc https://raw.githubusercontent.com/ariadata/Shell-Installers/master/static/bashrc.bashrc
 ########################################## NTP
-yum install ntp ntpdate ntp-doc -y
+yum install ntp ntpdate -y
 rm -f /etc/localtime
 ln -s /usr/share/zoneinfo/Asia/Tehran /etc/localtime
-systemctl restart ntpd
 ntpdate ntp.ariadata.co
-systemctl enable ntpd
 ########################################## webmin
 if [[ $install_webmin =~ ^([Yy])$ ]]
 then
 	yum install perl perl-Net-SSLeay perl-IO-Tty perl-Encode-Detect perl-Data-Dumper -y
-	wget --no-check-certificate "https://sourceforge.net/projects/webadmin/files/webmin/1.941/webmin-1.941-1.noarch.rpm/download" -O webmin.rpm
+	curl -o webmin.rpm -L  http://www.webmin.com/download/rpm/webmin-current.rpm
 	rpm -U webmin.rpm
 	rm -f webmin.rpm
 fi
@@ -108,15 +106,25 @@ fi
 ########################################## PHP-FPM and Configs
 cd /root/
 yum-config-manager --enable remi-php$php_version
-yum install php-fpm php-cli php-gd php-imap php-mbstring php-mysqlnd php-odbc php-pear php-pear-DB php-pear-Date php-pear-File php-pear-HTTP-Request php-pear-Log php-pear-Mail php-pear-Mail-Mime php-pear-Net-SMTP php-pear-Net-Sieve php-pear-Net-Socket php-pecl-zip php-soap php-xml php-xmlrpc -y
+yum install php-cli php-common php-fedora-autoloader php-fpm php-gd php-imap php-intl php-json php-mbstring php-mysqlnd php-odbc php-opcache php-pdo php-pear php-bcmath php-gmp php-sodium php-process php-soap php-symfony-class-loader php-symfony-common php-xml php-xmlrpc php-pecl-apcu php-pecl-apcu-bc php-pecl-igbinary php-pecl-mcrypt php-pecl-mongodb php-pecl-msgpack php-pecl-redis5 php-pecl-zip php-pear-Auth-SASL php-pear-DB php-pear-Date php-pear-File php-pear-File-CSV php-pear-File-Util php-pear-HTTP-Request php-pear-Log php-pear-MDB2 php-pear-Mail php-pear-Mail-Mime php-pear-Net-SMTP php-pear-Net-Sieve php-pear-Net-Socket php-pear-Net-URL -y
 wget --no-check-certificate "https://raw.githubusercontent.com/ariadata/Shell-Installers/master/static/www_php-fpm_C7_x64.conf" -O /etc/php-fpm.d/www.conf
 chmod 777 /var/lib/php -R
 ########################################## Yum Deep Update!
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php composer-setup.php --install-dir=/usr/bin/ --filename=composer
+rm -f composer-setup.php
 yum clean all
 yum update -y
 ##########################################
+if [[ $install_webmin =~ ^([Yy])$ ]]
+then
 systemctl enable nginx mariadb php-fpm webmin
 systemctl restart nginx mariadb php-fpm webmin
+else
+systemctl enable nginx mariadb php-fpm
+systemctl restart nginx mariadb php-fpm
+fi
+##########################################
 clear
 echo -e "\n======================================================\n======== \e[32mInstallation Completed Successfully!\033[0m ========\n======================================================\n"
 read -e -p $'Do You Want to \e[33mReboot System NOW\033[0m ? [\e[32my\033[0m|\e[31mn\033[0m] : ' -i "y" reboot_at_end
